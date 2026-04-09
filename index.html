@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="単勝ノート" />
   <meta name="theme-color" content="#007A3D" />
   <title>単勝ノート</title>
@@ -288,7 +288,7 @@
           )}
 
           {/* Header */}
-          <div style={{ background:C.header, borderBottom:`3px solid ${C.gold}`, position:"sticky", top:0, zIndex:10, padding:"0 16px", boxShadow:"0 2px 12px #00000033" }}>
+          <div style={{ background:C.header, borderBottom:`3px solid ${C.gold}`, position:"sticky", top:0, zIndex:10, padding:"env(safe-area-inset-top) 16px 0", boxShadow:"0 2px 12px #00000033" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 0 10px" }}>
               {view !== "list" && (
                 <button onClick={() => { setView("list"); setForm(initialForm); }}
