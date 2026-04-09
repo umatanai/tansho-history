@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>単勝ノート</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+    html, body { margin: 0; padding: 0; height: 100%; overscroll-behavior: none; background: #f5f5f0; }
+    #root { height: 100%; }
+    input, select, textarea { font-size: 16px !important; }
+    input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const JRA_VENUES = ["札幌","函館","福島","新潟","中山","東京","中京","京都","阪神","小倉"];
+    const NAR_VENUES = ["門別","帯広","盛岡","水沢","浦和","船橋","大井","川崎","金沢","笠松","名古屋","園田","姫路","高知","佐賀"];
+    const SURFACES    = ["良","稍重","重","不良"];
+    const TRACK_TYPES = ["芝","ダート","障害"];
+
+    const C = {
+      bg:         "#f5f5f0",
+      header:     "#007A3D",
+      headerDark: "#005a2d",
+      card:       "#ffffff",
+      gold:       "#C9A000",
+      greenText:  "#007A3D",
+      black:      "#1a1a1a",
+      muted:      "#6b8c74",
+      mutedLight: "#a8c5a8",
+      hit:        "#1a7a3d",
+      hitBg:      "#e6f4ec",
+      miss:       "#c0392b",
+      missBg:     "#fdecea",
+      pending:    "#1a5fa0",
+      pendingBg:  "#e8f1fb",
+      border:     "#d0ddd4",
+    };
+
+    const initialForm = {
+      league: "JRA", date: new Date().toISOString().slice(0,10),
+      venue: "東京", raceNo: "", distance: "",
+      trackType: "芝", surface: "良",
+      horseName: "", odds: "", betAmount: "", reasonMemo: "",
+    };
+
+    const fmt = n => Number(n).toLocaleString("ja-JP") + "円";
+
+    function RecoveryBadge({ rate }) {
+      const color = rate >= 100 ? C.hit : rate >= 70 ? C.gold : C.miss;
+      const bg    = rate >= 100 ? C.hitBg : rate >= 70 ? "#fff8e1" : C.missBg;
+      return <span style={{ background:bg, color, border:`1px solid ${color}55`, borderRadius:5, padding:"1px 8px", fontSize:12, fontWeight:800 }}>{rate.toFixed(1)}%</span>;
+    }
+
+    function StatusBadge({ status }) {
+      const m = { hit:{label:"的中",color:C.hit,bg:C.hitBg}, miss:{label:"ハズレ",color:C.miss,bg:C.missBg}, pending:{label:"未入力",color:C.pending,bg:C.pendingBg} };
+      const s = m[status] || m.pending;
+      return <span style={{ background:s.bg, color:s.color, border:`1px solid ${s.color}44`, borderRadius:5, padding:"2px 9px", fontSize:11, fontWeight:700 }}>{s.label}</span>;
+    }
+
+    const baseInput = {
+      width:"100%", boxSizing:"border-box", background:"#fff",
+      border:`1.5px solid ${C.border}`, borderRadius:8,
+      padding:"10px 12px", color:C.black, fontSize:16,
+      outline:"none", fontFamily:"inherit",
+    };
+
+    function Field({ label, children }) {
+      return (
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11, color:C.muted, marginBottom:5, fontWeight:700, letterSpacing:0.5 }}>{label}</div>
+          {children}
+        </div>
+      );
+    }
+
+    function TInput({ type="text", value, onChange, step }) {
+      return <input type={type} step={step} value={value} onChange={e => onChange(e.target.value)} style={baseInput} />;
+    }
+
+    function TSelect({ value, onChange, children }) {
+      return <select value={value} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance:"none", cursor:"pointer" }}>{children}</select>;
+    }
+
+    // 削除確認コンポーネント（confirm不使用）
+    function DeleteConfirm({ onConfirm, onCancel }) {
+      return (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(0,0,0,0.5)",
+          display:"flex", alignItems:"flex-end", justifyContent:"center",
+          zIndex:200, padding:"0 0 40px",
+        }}>
+          <div style={{
+            background:"#fff", borderRadius:16, padding:"24px 20px", width:"100%", maxWidth:480,
+            boxShadow:"0 -4px 24px #0002",
+          }}>
+            <div style={{ fontSize:16, fontWeight:800, color:C.black, marginBottom:8, textAlign:"center" }}>
+              この記録を削除しますか？
+            </div>
+            <div style={{ fontSize:13, color:C.muted, textAlign:"center", marginBottom:20 }}>
+              削除すると元に戻せません
+            </div>
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={onCancel} style={{
+                flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`,
+                background:"#fff", color:C.muted, fontSize:15, cursor:"pointer", fontWeight:700,
+              }}>キャンセル</button>
+              <button onClick={onConfirm} style={{
+                flex:1, padding:14, borderRadius:10, border:"none",
+                background:C.miss, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer",
+              }}>削除する</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function FormView({ form, setForm, onSubmit, onCancel, isEdit, onDeleteRequest }) {
+      const venueList = form.league === "JRA" ? JRA_VENUES : NAR_VENUES;
+      const setF = (k, v) => setForm(p => ({ ...p, [k]: v }));
+      const changeLeague = lg => setForm(p => ({ ...p, league:lg, venue: lg==="JRA" ? "東京" : "大井" }));
+
+      return (
+        <div style={{ padding:"20px 16px", background:C.bg, minHeight:"100vh" }}>
+          <div style={{ fontSize:16, fontWeight:800, marginBottom:20, color:C.greenText }}>
+            {isEdit ? "予想を編集" : "予想を登録"}
+          </div>
+
+          <Field label="リーグ">
+            <div style={{ display:"flex", gap:10 }}>
+              {["JRA","NAR"].map(lg => (
+                <button key={lg} onClick={() => changeLeague(lg)} style={{
+                  flex:1, padding:"10px 0", borderRadius:8, cursor:"pointer",
+                  fontSize:14, fontWeight:800,
+                  background: form.league===lg ? C.header : "#fff",
+                  color:      form.league===lg ? "#fff"    : C.muted,
+                  border:     form.league===lg ? "none" : `1.5px solid ${C.border}`,
+                }}>
+                  {lg==="JRA" ? "🏇 JRA" : "🐴 地方"}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label="日付">
+            <TInput type="date" value={form.date} onChange={v => setF("date", v)} />
+          </Field>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <Field label="競馬場">
+              <TSelect value={form.venue} onChange={v => setF("venue", v)}>
+                {venueList.map(v => <option key={v}>{v}</option>)}
+              </TSelect>
+            </Field>
+            <Field label="レース番号">
+              <TInput type="number" value={form.raceNo} onChange={v => setF("raceNo", v)} />
+            </Field>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+            <Field label="距離 (m)">
+              <TInput type="number" value={form.distance} onChange={v => setF("distance", v)} />
+            </Field>
+            <Field label="トラック">
+              <TSelect value={form.trackType} onChange={v => setF("trackType", v)}>
+                {TRACK_TYPES.map(v => <option key={v}>{v}</option>)}
+              </TSelect>
+            </Field>
+            <Field label="馬場">
+              <TSelect value={form.surface} onChange={v => setF("surface", v)}>
+                {SURFACES.map(v => <option key={v}>{v}</option>)}
+              </TSelect>
+            </Field>
+          </div>
+
+          <Field label="馬名 ＊">
+            <TInput value={form.horseName} onChange={v => setF("horseName", v)} />
+          </Field>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <Field label="購入時オッズ (倍) ＊">
+              <TInput type="number" step="0.1" value={form.odds} onChange={v => setF("odds", v)} />
+            </Field>
+            <Field label="購入金額 (円) ＊">
+              <TInput type="number" value={form.betAmount} onChange={v => setF("betAmount", v)} />
+            </Field>
+          </div>
+
+          <Field label="選んだ理由・メモ">
+            <textarea value={form.reasonMemo} onChange={e => setF("reasonMemo", e.target.value)}
+              rows={3} style={{ ...baseInput, resize:"vertical" }} />
+          </Field>
+
+          <div style={{ display:"flex", gap:10, marginTop:20 }}>
+            <button onClick={onCancel} style={{
+              flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`,
+              background:"#fff", color:C.muted, fontSize:15, cursor:"pointer",
+            }}>キャンセル</button>
+            <button onClick={onSubmit} style={{
+              flex:2, padding:14, borderRadius:10, border:"none",
+              background:C.header, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer",
+            }}>
+              {isEdit ? "変更を保存" : "登録する"}
+            </button>
+          </div>
+
+          {isEdit && (
+            <button onClick={onDeleteRequest} style={{
+              width:"100%", marginTop:12, padding:13, borderRadius:10,
+              border:`1.5px solid ${C.miss}66`, background:C.missBg,
+              color:C.miss, fontSize:14, fontWeight:700, cursor:"pointer",
+            }}>この記録を削除する</button>
+          )}
+        </div>
+      );
+    }
+
+    function App() {
+      const [records,    setRecords]    = useState(() => { try { return JSON.parse(localStorage.getItem("tansho_v2")||"[]"); } catch { return []; } });
+      const [view,       setView]       = useState("list");
+      const [form,       setForm]       = useState(initialForm);
+      const [resultForm, setResultForm] = useState({ placing:"", payout:"", reviewMemo:"" });
+      const [editId,     setEditId]     = useState(null);
+      const [selectedId, setSelectedId] = useState(null);
+      const [filter,     setFilter]     = useState("all");
+      const [toast,      setToast]      = useState(null);
+      const [deleteTarget, setDeleteTarget] = useState(null); // 削除確認対象ID
+
+      useEffect(() => { localStorage.setItem("tansho_v2", JSON.stringify(records)); }, [records]);
+
+      function showToast(msg, type="ok") {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 2400);
+      }
+
+      function addRecord() {
+        if (!form.horseName || !form.odds || !form.betAmount || !form.raceNo || !form.distance) {
+          showToast("必須項目を入力してください", "err"); return;
+        }
+        setRecords(prev => [{ ...form, id:Date.now().toString(), status:"pending", placing:null, payout:null, reviewMemo:"", createdAt:new Date().toISOString() }, ...prev]);
+        setForm(initialForm); setView("list"); showToast("予想を登録しました ✓");
+      }
+
+      function startEdit(id) {
+        const rec = records.find(r => r.id===id);
+        if (!rec) return;
+        setEditId(id);
+        setForm({ league:rec.league||"JRA", date:rec.date, venue:rec.venue, raceNo:rec.raceNo, distance:rec.distance, trackType:rec.trackType, surface:rec.surface, horseName:rec.horseName, odds:rec.odds, betAmount:rec.betAmount, reasonMemo:rec.reasonMemo||"" });
+        setView("edit");
+      }
+
+      function saveEdit() {
+        if (!form.horseName || !form.odds || !form.betAmount || !form.raceNo || !form.distance) {
+          showToast("必須項目を入力してください", "err"); return;
+        }
+        setRecords(prev => prev.map(r => r.id===editId ? { ...r, ...form } : r));
+        setEditId(null); setForm(initialForm); setView("list"); showToast("編集を保存しました ✓");
+      }
+
+      function openResult(id) {
+        const rec = records.find(r => r.id===id);
+        if (!rec) return;
+        setSelectedId(id);
+        setResultForm({ placing:rec.placing||"", payout:rec.payout||"", reviewMemo:rec.reviewMemo||"" });
+        setView("result");
+      }
+
+      function saveResult() {
+        const placing = parseInt(resultForm.placing);
+        if (!resultForm.placing || isNaN(placing)) { showToast("着順を入力してください", "err"); return; }
+        setRecords(prev => prev.map(r => r.id===selectedId ? { ...r, placing, payout: placing===1 ? (Number(resultForm.payout)||0) : 0, reviewMemo:resultForm.reviewMemo, status: placing===1 ? "hit" : "miss" } : r));
+        setView("list"); showToast(placing===1 ? "🎉 的中おめでとう！" : "結果を記録しました");
+      }
+
+      // 削除確認モーダルを開く
+      function requestDelete(id) { setDeleteTarget(id); }
+
+      // 実際に削除
+      function confirmDelete() {
+        setRecords(prev => prev.filter(r => r.id !== deleteTarget));
+        setDeleteTarget(null);
+        setEditId(null);
+        setForm(initialForm);
+        setView("list");
+        showToast("削除しました");
+      }
+
+      const filtered  = records.filter(r => filter==="all" || r.status===filter);
+      const totalBet  = records.reduce((s,r) => s+(Number(r.betAmount)||0), 0);
+      const totalRet  = records.filter(r => r.status==="hit").reduce((s,r) => s+(Number(r.payout)||0), 0);
+      const recovery  = totalBet>0 ? (totalRet/totalBet)*100 : 0;
+      const hitCount  = records.filter(r => r.status==="hit").length;
+      const doneCount = records.filter(r => r.status!=="pending").length;
+      const selectedRec = records.find(r => r.id===selectedId);
+
+      return (
+        <div style={{ minHeight:"100vh", background:C.bg, color:C.black, fontFamily:"'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif", maxWidth:480, margin:"0 auto", paddingBottom:90 }}>
+
+          {/* 削除確認モーダル */}
+          {deleteTarget && (
+            <DeleteConfirm
+              onConfirm={confirmDelete}
+              onCancel={() => setDeleteTarget(null)}
+            />
+          )}
+
+          {/* Toast */}
+          {toast && (
+            <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", background: toast.type==="err" ? C.miss : C.header, color:"#fff", padding:"10px 24px", borderRadius:10, fontSize:14, zIndex:999, boxShadow:"0 4px 20px #0003", whiteSpace:"nowrap" }}>
+              {toast.msg}
+            </div>
+          )}
+
+          {/* Header */}
+          <div style={{ background:C.header, borderBottom:`3px solid ${C.gold}`, position:"sticky", top:0, zIndex:10, padding:"0 16px", boxShadow:"0 2px 12px #00000033" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 0 10px" }}>
+              {view !== "list" && (
+                <button onClick={() => { setView("list"); setForm(initialForm); }}
+                  style={{ background:"none", border:"none", color:C.gold, fontSize:22, cursor:"pointer", padding:0, lineHeight:1, fontWeight:900 }}>←</button>
+              )}
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ width:32, height:32, borderRadius:"50%", background:"#fff", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 0 0 2px ${C.gold}` }}>
+                  <span style={{ fontSize:10, fontWeight:900, color:C.header, letterSpacing:-0.5 }}>JRA</span>
+                </div>
+                <div>
+                  <div style={{ fontSize:18, fontWeight:900, color:"#fff", letterSpacing:-0.5 }}>単勝ノート</div>
+                  <div style={{ fontSize:9, color:C.mutedLight, letterSpacing:1 }}>WIN-BET HISTORY</div>
+                </div>
+              </div>
+              <span style={{ marginLeft:"auto", fontSize:11, color:C.mutedLight }}>{records.length}件</span>
+            </div>
+
+            {records.length > 0 && (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6, marginBottom:12, background:C.headerDark, borderRadius:10, padding:"10px 8px" }}>
+                {[["投資合計",fmt(totalBet)],["回収合計",fmt(totalRet)],["回収率",<RecoveryBadge rate={recovery}/>],["的中",`${hitCount}/${doneCount}`]].map(([label,val]) => (
+                  <div key={label} style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:9, color:C.mutedLight, marginBottom:3 }}>{label}</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:"#fff" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {view==="list" && (
+              <div style={{ display:"flex", gap:6, paddingBottom:10, overflowX:"auto" }}>
+                {[["all","すべて"],["pending","未入力"],["hit","的中"],["miss","ハズレ"]].map(([val,label]) => (
+                  <button key={val} onClick={() => setFilter(val)} style={{ padding:"4px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:700, whiteSpace:"nowrap", background: filter===val ? C.gold : "rgba(255,255,255,0.18)", color: filter===val ? "#fff" : "rgba(255,255,255,0.75)" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 一覧 */}
+          {view==="list" && (
+            <div style={{ padding:"12px 14px" }}>
+              {filtered.length===0 && (
+                <div style={{ textAlign:"center", padding:"64px 0", color:C.muted, fontSize:14 }}>
+                  {records.length===0 ? "＋ボタンで最初の予想を登録しましょう" : "該当する記録がありません"}
+                </div>
+              )}
+              {filtered.map(rec => {
+                const profit = rec.status==="hit" ? rec.payout-rec.betAmount : rec.status==="miss" ? -rec.betAmount : null;
+                const bc = rec.status==="hit" ? C.hit : rec.status==="miss" ? C.miss : C.border;
+                return (
+                  <div key={rec.id} style={{ background:C.card, borderRadius:12, padding:"14px 16px", marginBottom:10, borderLeft:`4px solid ${bc}`, boxShadow:"0 1px 6px #00000012" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                        <span style={{ fontSize:17, fontWeight:900, color:C.black }}>{rec.horseName}</span>
+                        <span style={{ fontSize:12, background:C.hitBg, color:C.greenText, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>{rec.odds}倍</span>
+                        {rec.league==="NAR" && <span style={{ fontSize:10, background:"#fff8e1", color:C.gold, padding:"2px 6px", borderRadius:4, fontWeight:800, border:`1px solid ${C.gold}44` }}>地方</span>}
+                      </div>
+                      <StatusBadge status={rec.status} />
+                    </div>
+                    <div style={{ fontSize:12, color:C.muted, marginTop:6, display:"flex", gap:10, flexWrap:"wrap" }}>
+                      <span>{rec.date}</span><span>{rec.venue} {rec.raceNo}R</span><span>{rec.trackType}{rec.distance}m {rec.surface}</span>
+                    </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
+                      <div style={{ fontSize:13 }}>
+                        <span style={{ color:C.muted }}>投資 </span><span style={{ fontWeight:700 }}>{fmt(rec.betAmount)}</span>
+                        {rec.status==="hit" && <><span style={{ color:C.muted, marginLeft:8 }}>回収 </span><span style={{ fontWeight:700, color:C.hit }}>{fmt(rec.payout)}</span></>}
+                        {profit!==null && <span style={{ marginLeft:8, fontSize:12, fontWeight:700, color:profit>=0?C.hit:C.miss }}>({profit>=0?"+":""}{fmt(profit)})</span>}
+                      </div>
+                      <div style={{ display:"flex", gap:6 }}>
+                        {rec.status==="pending" && (
+                          <button onClick={() => openResult(rec.id)} style={{ background:C.header, color:"#fff", border:"none", borderRadius:7, padding:"5px 12px", fontSize:12, fontWeight:700, cursor:"pointer" }}>結果入力</button>
+                        )}
+                        <button onClick={() => startEdit(rec.id)} style={{ background:C.card, color:C.greenText, border:`1.5px solid ${C.greenText}44`, borderRadius:7, padding:"5px 12px", fontSize:12, fontWeight:700, cursor:"pointer" }}>編集</button>
+                      </div>
+                    </div>
+                    {rec.reasonMemo && (
+                      <div style={{ marginTop:8, fontSize:12, color:C.greenText, background:C.hitBg, borderRadius:7, padding:"6px 10px", borderLeft:`2px solid ${C.header}` }}>💭 {rec.reasonMemo}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 登録 */}
+          {view==="add" && (
+            <FormView form={form} setForm={setForm} isEdit={false}
+              onSubmit={addRecord}
+              onCancel={() => { setView("list"); setForm(initialForm); }} />
+          )}
+
+          {/* 編集 */}
+          {view==="edit" && (
+            <FormView form={form} setForm={setForm} isEdit={true}
+              onSubmit={saveEdit}
+              onCancel={() => { setView("list"); setForm(initialForm); }}
+              onDeleteRequest={() => requestDelete(editId)} />
+          )}
+
+          {/* 結果入力 */}
+          {view==="result" && selectedRec && (
+            <div style={{ padding:"20px 16px", background:C.bg, minHeight:"100vh" }}>
+              <div style={{ fontSize:16, fontWeight:800, marginBottom:4, color:C.greenText }}>結果を入力</div>
+              <div style={{ fontSize:13, color:C.muted, marginBottom:20 }}>
+                {selectedRec.horseName} ／ {selectedRec.venue} {selectedRec.raceNo}R（{selectedRec.odds}倍）
+              </div>
+              <Field label="着順 ＊">
+                <TInput type="number" value={resultForm.placing} onChange={v => setResultForm(p => ({ ...p, placing:v }))} />
+              </Field>
+              {resultForm.placing==="1" && (
+                <Field label="払戻金額 (円)">
+                  <TInput type="number" value={resultForm.payout} onChange={v => setResultForm(p => ({ ...p, payout:v }))} />
+                </Field>
+              )}
+              <Field label="振り返りメモ">
+                <textarea value={resultForm.reviewMemo} onChange={e => setResultForm(p => ({ ...p, reviewMemo:e.target.value }))} rows={4} style={{ ...baseInput, resize:"vertical" }} />
+              </Field>
+              <div style={{ display:"flex", gap:10, marginTop:20 }}>
+                <button onClick={() => setView("list")} style={{ flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`, background:"#fff", color:C.muted, fontSize:15, cursor:"pointer" }}>戻る</button>
+                <button onClick={saveResult} style={{ flex:2, padding:14, borderRadius:10, border:"none", background:C.header, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer" }}>保存する</button>
+              </div>
+            </div>
+          )}
+
+          {/* FAB */}
+          {view==="list" && (
+            <button onClick={() => { setForm(initialForm); setView("add"); }} style={{ position:"fixed", bottom:24, right:24, width:60, height:60, borderRadius:"50%", background:C.header, color:"#fff", fontSize:30, fontWeight:900, border:`3px solid ${C.gold}`, cursor:"pointer", boxShadow:`0 4px 20px ${C.header}88`, display:"flex", alignItems:"center", justifyContent:"center" }}>＋</button>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+
+</body>
+</html>
