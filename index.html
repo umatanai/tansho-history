@@ -5,11 +5,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="単勝ノート" />
+  <meta name="theme-color" content="#007A3D" />
   <title>単勝ノート</title>
+
+  <!-- ホーム画面アイコン（iOS Safari） -->
+
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjM2IiBmaWxsPSIjMDA3QTNEIi8+PHJlY3QgeD0iMCIgeT0iMTU0IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI2IiBmaWxsPSIjQzlBMDAwIi8+PHRleHQgeD0iOTAiIHk9IjEwMCIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjgwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjQzlBMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+5Y2YPC90ZXh0Pjx0ZXh0IHg9IjkwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+Tk9URTwvdGV4dD48L3N2Zz4=" />
+
+  <!-- Androidなど向けファビコン -->
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjM2IiBmaWxsPSIjMDA3QTNEIi8+PHJlY3QgeD0iMCIgeT0iMTU0IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI2IiBmaWxsPSIjQzlBMDAwIi8+PHRleHQgeD0iOTAiIHk9IjEwMCIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjgwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjQzlBMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+5Y2YPC90ZXh0Pjx0ZXh0IHg9IjkwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+Tk9URTwvdGV4dD48L3N2Zz4=" />
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
     html, body { margin: 0; padding: 0; height: 100%; overscroll-behavior: none; background: #f5f5f0; }
@@ -17,6 +31,7 @@
     input, select, textarea { font-size: 16px !important; }
     input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.6; }
   </style>
+
 </head>
 <body>
   <div id="root"></div>
@@ -93,33 +108,15 @@
       return <select value={value} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance:"none", cursor:"pointer" }}>{children}</select>;
     }
 
-    // 削除確認コンポーネント（confirm不使用）
     function DeleteConfirm({ onConfirm, onCancel }) {
       return (
-        <div style={{
-          position:"fixed", inset:0, background:"rgba(0,0,0,0.5)",
-          display:"flex", alignItems:"flex-end", justifyContent:"center",
-          zIndex:200, padding:"0 0 40px",
-        }}>
-          <div style={{
-            background:"#fff", borderRadius:16, padding:"24px 20px", width:"100%", maxWidth:480,
-            boxShadow:"0 -4px 24px #0002",
-          }}>
-            <div style={{ fontSize:16, fontWeight:800, color:C.black, marginBottom:8, textAlign:"center" }}>
-              この記録を削除しますか？
-            </div>
-            <div style={{ fontSize:13, color:C.muted, textAlign:"center", marginBottom:20 }}>
-              削除すると元に戻せません
-            </div>
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:200, padding:"0 0 40px" }}>
+          <div style={{ background:"#fff", borderRadius:16, padding:"24px 20px", width:"100%", maxWidth:480, boxShadow:"0 -4px 24px #0002" }}>
+            <div style={{ fontSize:16, fontWeight:800, color:C.black, marginBottom:8, textAlign:"center" }}>この記録を削除しますか？</div>
+            <div style={{ fontSize:13, color:C.muted, textAlign:"center", marginBottom:20 }}>削除すると元に戻せません</div>
             <div style={{ display:"flex", gap:10 }}>
-              <button onClick={onCancel} style={{
-                flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`,
-                background:"#fff", color:C.muted, fontSize:15, cursor:"pointer", fontWeight:700,
-              }}>キャンセル</button>
-              <button onClick={onConfirm} style={{
-                flex:1, padding:14, borderRadius:10, border:"none",
-                background:C.miss, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer",
-              }}>削除する</button>
+              <button onClick={onCancel} style={{ flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`, background:"#fff", color:C.muted, fontSize:15, cursor:"pointer", fontWeight:700 }}>キャンセル</button>
+              <button onClick={onConfirm} style={{ flex:1, padding:14, borderRadius:10, border:"none", background:C.miss, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer" }}>削除する</button>
             </div>
           </div>
         </div>
@@ -203,74 +200,57 @@
           </Field>
 
           <div style={{ display:"flex", gap:10, marginTop:20 }}>
-            <button onClick={onCancel} style={{
-              flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`,
-              background:"#fff", color:C.muted, fontSize:15, cursor:"pointer",
-            }}>キャンセル</button>
-            <button onClick={onSubmit} style={{
-              flex:2, padding:14, borderRadius:10, border:"none",
-              background:C.header, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer",
-            }}>
+            <button onClick={onCancel} style={{ flex:1, padding:14, borderRadius:10, border:`1.5px solid ${C.border}`, background:"#fff", color:C.muted, fontSize:15, cursor:"pointer" }}>キャンセル</button>
+            <button onClick={onSubmit} style={{ flex:2, padding:14, borderRadius:10, border:"none", background:C.header, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer" }}>
               {isEdit ? "変更を保存" : "登録する"}
             </button>
           </div>
 
           {isEdit && (
-            <button onClick={onDeleteRequest} style={{
-              width:"100%", marginTop:12, padding:13, borderRadius:10,
-              border:`1.5px solid ${C.miss}66`, background:C.missBg,
-              color:C.miss, fontSize:14, fontWeight:700, cursor:"pointer",
-            }}>この記録を削除する</button>
+            <button onClick={onDeleteRequest} style={{ width:"100%", marginTop:12, padding:13, borderRadius:10, border:`1.5px solid ${C.miss}66`, background:C.missBg, color:C.miss, fontSize:14, fontWeight:700, cursor:"pointer" }}>
+              この記録を削除する
+            </button>
           )}
         </div>
       );
     }
 
     function App() {
-      const [records,    setRecords]    = useState(() => { try { return JSON.parse(localStorage.getItem("tansho_v2")||"[]"); } catch { return []; } });
-      const [view,       setView]       = useState("list");
-      const [form,       setForm]       = useState(initialForm);
-      const [resultForm, setResultForm] = useState({ placing:"", payout:"", reviewMemo:"" });
-      const [editId,     setEditId]     = useState(null);
-      const [selectedId, setSelectedId] = useState(null);
-      const [filter,     setFilter]     = useState("all");
-      const [toast,      setToast]      = useState(null);
-      const [deleteTarget, setDeleteTarget] = useState(null); // 削除確認対象ID
+      const [records,      setRecords]      = useState(() => { try { return JSON.parse(localStorage.getItem("tansho_v2")||"[]"); } catch { return []; } });
+      const [view,         setView]         = useState("list");
+      const [form,         setForm]         = useState(initialForm);
+      const [resultForm,   setResultForm]   = useState({ placing:"", payout:"", reviewMemo:"" });
+      const [editId,       setEditId]       = useState(null);
+      const [selectedId,   setSelectedId]   = useState(null);
+      const [filter,       setFilter]       = useState("all");
+      const [toast,        setToast]        = useState(null);
+      const [deleteTarget, setDeleteTarget] = useState(null);
 
       useEffect(() => { localStorage.setItem("tansho_v2", JSON.stringify(records)); }, [records]);
 
-      function showToast(msg, type="ok") {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 2400);
-      }
+      function showToast(msg, type="ok") { setToast({ msg, type }); setTimeout(() => setToast(null), 2400); }
 
       function addRecord() {
-        if (!form.horseName || !form.odds || !form.betAmount || !form.raceNo || !form.distance) {
-          showToast("必須項目を入力してください", "err"); return;
-        }
+        if (!form.horseName || !form.odds || !form.betAmount || !form.raceNo || !form.distance) { showToast("必須項目を入力してください", "err"); return; }
         setRecords(prev => [{ ...form, id:Date.now().toString(), status:"pending", placing:null, payout:null, reviewMemo:"", createdAt:new Date().toISOString() }, ...prev]);
         setForm(initialForm); setView("list"); showToast("予想を登録しました ✓");
       }
 
       function startEdit(id) {
-        const rec = records.find(r => r.id===id);
-        if (!rec) return;
+        const rec = records.find(r => r.id===id); if (!rec) return;
         setEditId(id);
         setForm({ league:rec.league||"JRA", date:rec.date, venue:rec.venue, raceNo:rec.raceNo, distance:rec.distance, trackType:rec.trackType, surface:rec.surface, horseName:rec.horseName, odds:rec.odds, betAmount:rec.betAmount, reasonMemo:rec.reasonMemo||"" });
         setView("edit");
       }
 
       function saveEdit() {
-        if (!form.horseName || !form.odds || !form.betAmount || !form.raceNo || !form.distance) {
-          showToast("必須項目を入力してください", "err"); return;
-        }
+        if (!form.horseName || !form.odds || !form.betAmount || !form.raceNo || !form.distance) { showToast("必須項目を入力してください", "err"); return; }
         setRecords(prev => prev.map(r => r.id===editId ? { ...r, ...form } : r));
         setEditId(null); setForm(initialForm); setView("list"); showToast("編集を保存しました ✓");
       }
 
       function openResult(id) {
-        const rec = records.find(r => r.id===id);
-        if (!rec) return;
+        const rec = records.find(r => r.id===id); if (!rec) return;
         setSelectedId(id);
         setResultForm({ placing:rec.placing||"", payout:rec.payout||"", reviewMemo:rec.reviewMemo||"" });
         setView("result");
@@ -283,17 +263,9 @@
         setView("list"); showToast(placing===1 ? "🎉 的中おめでとう！" : "結果を記録しました");
       }
 
-      // 削除確認モーダルを開く
-      function requestDelete(id) { setDeleteTarget(id); }
-
-      // 実際に削除
       function confirmDelete() {
         setRecords(prev => prev.filter(r => r.id !== deleteTarget));
-        setDeleteTarget(null);
-        setEditId(null);
-        setForm(initialForm);
-        setView("list");
-        showToast("削除しました");
+        setDeleteTarget(null); setEditId(null); setForm(initialForm); setView("list"); showToast("削除しました");
       }
 
       const filtered  = records.filter(r => filter==="all" || r.status===filter);
@@ -307,15 +279,8 @@
       return (
         <div style={{ minHeight:"100vh", background:C.bg, color:C.black, fontFamily:"'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif", maxWidth:480, margin:"0 auto", paddingBottom:90 }}>
 
-          {/* 削除確認モーダル */}
-          {deleteTarget && (
-            <DeleteConfirm
-              onConfirm={confirmDelete}
-              onCancel={() => setDeleteTarget(null)}
-            />
-          )}
+          {deleteTarget && <DeleteConfirm onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />}
 
-          {/* Toast */}
           {toast && (
             <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", background: toast.type==="err" ? C.miss : C.header, color:"#fff", padding:"10px 24px", borderRadius:10, fontSize:14, zIndex:999, boxShadow:"0 4px 20px #0003", whiteSpace:"nowrap" }}>
               {toast.msg}
@@ -410,27 +375,16 @@
           )}
 
           {/* 登録 */}
-          {view==="add" && (
-            <FormView form={form} setForm={setForm} isEdit={false}
-              onSubmit={addRecord}
-              onCancel={() => { setView("list"); setForm(initialForm); }} />
-          )}
+          {view==="add" && <FormView form={form} setForm={setForm} isEdit={false} onSubmit={addRecord} onCancel={() => { setView("list"); setForm(initialForm); }} />}
 
           {/* 編集 */}
-          {view==="edit" && (
-            <FormView form={form} setForm={setForm} isEdit={true}
-              onSubmit={saveEdit}
-              onCancel={() => { setView("list"); setForm(initialForm); }}
-              onDeleteRequest={() => requestDelete(editId)} />
-          )}
+          {view==="edit" && <FormView form={form} setForm={setForm} isEdit={true} onSubmit={saveEdit} onCancel={() => { setView("list"); setForm(initialForm); }} onDeleteRequest={() => setDeleteTarget(editId)} />}
 
           {/* 結果入力 */}
           {view==="result" && selectedRec && (
             <div style={{ padding:"20px 16px", background:C.bg, minHeight:"100vh" }}>
               <div style={{ fontSize:16, fontWeight:800, marginBottom:4, color:C.greenText }}>結果を入力</div>
-              <div style={{ fontSize:13, color:C.muted, marginBottom:20 }}>
-                {selectedRec.horseName} ／ {selectedRec.venue} {selectedRec.raceNo}R（{selectedRec.odds}倍）
-              </div>
+              <div style={{ fontSize:13, color:C.muted, marginBottom:20 }}>{selectedRec.horseName} ／ {selectedRec.venue} {selectedRec.raceNo}R（{selectedRec.odds}倍）</div>
               <Field label="着順 ＊">
                 <TInput type="number" value={resultForm.placing} onChange={v => setResultForm(p => ({ ...p, placing:v }))} />
               </Field>
